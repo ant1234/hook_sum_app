@@ -16,8 +16,7 @@ function Ingredients() {
   };
 
   const onRemoveHandler = (ingredientId) => {
-    const newList = ingredientList.filter(ingredient => ingredientId !== ingredient.id);
-    setingredientList(newList);
+    setingredientList((prevIngredients) => prevIngredients.filter(ingredient => ingredientId !== ingredient.id));
 };
 
   return (
