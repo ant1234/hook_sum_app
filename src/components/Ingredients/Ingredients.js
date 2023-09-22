@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import IngredientForm from './IngredientForm';
 
 import Search from './Search';
@@ -7,29 +7,15 @@ import IngredientList from './IngredientList';
 function Ingredients() {
 
   const [ingredientList, setingredientList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-      fetch('https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients.json')
-        .then(response => response.json())
-        .then(responseData => {
-        const loadedIngredients = [];
-        for(const key in responseData) {
-
-          console.log(responseData[key]);
-
-          loadedIngredients.push({
-            id: key,
-            title: responseData[key].title,
-            amount: responseData[key].amount,
-          });
-        }
-        setingredientList(loadedIngredients);
-      });
-            
+  const onLoadIngredientHandler = useCallback(filteredIngredients => {
+    setingredientList(filteredIngredients);
   }, []);
 
-
   const ingredientListHandler = async (ingredient) => {
+
+    setIsLoading(true);
 
     const response = await fetch('https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients.json', {
       method: 'POST',
@@ -38,6 +24,7 @@ function Ingredients() {
     });
 
     if(response.ok) {
+      setIsLoading(false);
       setingredientList((prevState) => [...prevState, {
         id: Math.random().toString(),
         ...ingredient
@@ -46,18 +33,28 @@ function Ingredients() {
 
   };
 
-  const onRemoveHandler = (ingredientId) => {
+  const onRemoveHandler = async (ingredientId) => {
+    setIsLoading(false);
+    const response = await fetch(`https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients/${ingredientId}.json`, {
+      method: 'DELETE',
+      headers: {'Content-Type': 'application/json'},
+    });
+
+    if(response.ok) {
+      setIsLoading(true);
       setingredientList((prevIngredients) => prevIngredients.filter(ingredient => ingredientId !== ingredient.id));
+    }
+
   };
 
   return (
     <div className="App">
-      <IngredientForm ingredientList={ingredientListHandler}/>
+      <IngredientForm ingredientList={ingredientListHandler} loading={isLoading}/>
 
       <IngredientList ingredients={ingredientList} onRemoveItem={onRemoveHandler}/>
 
       <section>
-        <Search />
+        <Search onLoadIngredient={onLoadIngredientHandler}/>
         {/* Need to add list here! */}
       </section>
     </div>
