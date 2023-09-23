@@ -1,16 +1,31 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useReducer } from 'react';
 import IngredientForm from './IngredientForm';
 
 import Search from './Search';
 import IngredientList from './IngredientList';
 
+const ingredientReducer = (currentIngredients, action) => {
+  switch(action.type) {
+    case "SET":
+      return action.ingredients;
+    case "ADD":
+      return [currentIngredients, action.ingredients];
+    case "DELETE":
+      return currentIngredients.filter(ingredient => ingredient.id !== action.id);
+    default: 
+      throw new Error("Should not go there!");
+  }
+};
+
 function Ingredients() {
 
-  const [ingredientList, setingredientList] = useState([]);
+  const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const onLoadIngredientHandler = useCallback(filteredIngredients => {
-    setingredientList(filteredIngredients);
+    // setingredientList(filteredIngredients);
+    dispatch({type: 'SET', ingredients: filteredIngredients});
   }, []);
 
   const ingredientListHandler = async (ingredient) => {
@@ -25,24 +40,27 @@ function Ingredients() {
 
     if(response.ok) {
       setIsLoading(false);
-      setingredientList((prevState) => [...prevState, {
-        id: Math.random().toString(),
-        ...ingredient
-      }]);
+      // setingredientList((prevState) => [...prevState, {
+      //   id: Math.random().toString(),
+      //   ...ingredient
+      // }]);
+      dispatch({type: 'ADD', ingredients: {id: Math.random().toString(), ...ingredient}});
     }
 
   };
 
   const onRemoveHandler = async (ingredientId) => {
-    setIsLoading(false);
+    setIsLoading(true);
     const response = await fetch(`https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients/${ingredientId}.json`, {
       method: 'DELETE',
       headers: {'Content-Type': 'application/json'},
     });
 
     if(response.ok) {
-      setIsLoading(true);
-      setingredientList((prevIngredients) => prevIngredients.filter(ingredient => ingredientId !== ingredient.id));
+      setIsLoading(false);
+      // setingredientList((prevIngredients) => prevIngredients.filter(ingredient => ingredientId !== ingredient.id));
+      dispatch({type: 'DELETE', id: ingredientId});
+
     }
 
   };
@@ -51,7 +69,7 @@ function Ingredients() {
     <div className="App">
       <IngredientForm ingredientList={ingredientListHandler} loading={isLoading}/>
 
-      <IngredientList ingredients={ingredientList} onRemoveItem={onRemoveHandler}/>
+      <IngredientList ingredients={userIngredients} onRemoveItem={onRemoveHandler}/>
 
       <section>
         <Search onLoadIngredient={onLoadIngredientHandler}/>
