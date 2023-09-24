@@ -17,11 +17,27 @@ const ingredientReducer = (currentIngredients, action) => {
   }
 };
 
+const httpReducer = (httpState, action) => {
+  switch(action.type) {
+    case "SEND":
+      return {loading: true, error: null}
+    case "RESPONSE":
+      return {...httpstate, loading: false }
+    case "ERROR":
+      return {loading: false, error: action.errorData}
+    case "CLEAR":
+      return {...httpState, error: null}
+    default:
+      throw new Error('Do not go here!');
+  }
+};
+
 function Ingredients() {
 
   const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
 
-  const [isLoading, setIsLoading] = useState(false);
+  //const [isLoading, setIsLoading] = useState(false);
+  const [httpState, dispatchHttp] = useReducer(httpReducer, {loading: false, error: null})
 
   const onLoadIngredientHandler = useCallback(filteredIngredients => {
     // setingredientList(filteredIngredients);
@@ -30,7 +46,8 @@ function Ingredients() {
 
   const ingredientListHandler = async (ingredient) => {
 
-    setIsLoading(true);
+    // setIsLoading(true);
+    dispatchHttp({type: 'SEND'});
 
     const response = await fetch('https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients.json', {
       method: 'POST',
@@ -39,7 +56,9 @@ function Ingredients() {
     });
 
     if(response.ok) {
-      setIsLoading(false);
+      // setIsLoading(false);
+      dispatchHttp({type: 'RESPONSE'});
+
       // setingredientList((prevState) => [...prevState, {
       //   id: Math.random().toString(),
       //   ...ingredient
@@ -50,14 +69,16 @@ function Ingredients() {
   };
 
   const onRemoveHandler = async (ingredientId) => {
-    setIsLoading(true);
+    dispatchHttp({type: 'SEND'});
+
     const response = await fetch(`https://ingredient-2bd0a-default-rtdb.firebaseio.com/ingredients/${ingredientId}.json`, {
       method: 'DELETE',
       headers: {'Content-Type': 'application/json'},
     });
 
     if(response.ok) {
-      setIsLoading(false);
+      dispatchHttp({type: 'RESPONSE'});
+
       // setingredientList((prevIngredients) => prevIngredients.filter(ingredient => ingredientId !== ingredient.id));
       dispatch({type: 'DELETE', id: ingredientId});
 
@@ -67,7 +88,7 @@ function Ingredients() {
 
   return (
     <div className="App">
-      <IngredientForm ingredientList={ingredientListHandler} loading={isLoading}/>
+      <IngredientForm ingredientList={ingredientListHandler} loading={httpState.loading}/>
 
       <IngredientList ingredients={userIngredients} onRemoveItem={onRemoveHandler}/>
 
